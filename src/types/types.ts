@@ -1,16 +1,29 @@
 export interface IWebsocketCommand {
-	type: WebsocketCommandType.REG
-	data: IPlayerData
+	type: WebsocketCommandType
+	data: IPlayerData | Array<IRoomData>
 	id: 0
+}
+export interface IPlayerWebsocketCommand
+	extends Omit<IWebsocketCommand, 'data'> {
+	data: IPlayerData
+}
+export interface IRoomWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {
+	data: Array<IRoomData>
 }
 export interface IRawWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {
 	data: string
 }
+
 export interface IPlayerData {
-	name?: string
-	index?: number
+	name: string
+	index: string
 	error?: boolean
 	errorText?: string
+}
+
+export interface IRoomData {
+	roomId: string
+	roomUsers: Array<IPlayerData>
 }
 
 export enum WebsocketCommandType {
