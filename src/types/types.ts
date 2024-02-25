@@ -10,7 +10,7 @@ export interface IPlayerWebsocketCommand
 export interface IRoomWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {
 	data: Array<IRoomData>
 }
-export interface IRawWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {
+export interface IJsonWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {
 	data: string
 }
 export interface IGameWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {

@@ -46,17 +46,22 @@ export class BattleShipServer extends WebSocketServer {
 		const parsedData = JSON.parse(data.toString())
 		switch (parsedData.type) {
 			case WebsocketCommandType.REG:
-				const playerData = deepParsing(data.toString())
+				const playerData = deepParsing(parsedData)
 				this.registrationResponse(playerData, ws)
 				break
 			case WebsocketCommandType.CREATE_ROOM:
 				this.clients.forEach((client) => {
 					this.updateRoomCommandResponse(client)
 				})
+				break
 			case WebsocketCommandType.ADD_USER_TO_ROOM:
 				this.clients.forEach((client) => {
 					this.createGameCommandResponse(client)
 				})
+				break
+			case WebsocketCommandType.ADD_SHIPS:
+				this.addShipsResponse(parsedData)
+			default:
 				break
 		}
 	}
@@ -75,6 +80,11 @@ export class BattleShipServer extends WebSocketServer {
 		}
 		this._playerData.push(player)
 		ws.send(deepStringify(player))
+	}
+
+	addShipsResponse(data: any) {
+		const dataparsed = { ...data, data: JSON.parse(data.data) }
+		console.log(dataparsed.data.ships[0])
 	}
 
 	createGameCommandResponse(client: WebSocket) {
@@ -99,7 +109,6 @@ export class BattleShipServer extends WebSocketServer {
 				index: player.data.index,
 			})
 		})
-		console.log(players)
 
 		const room: IRoomWebsocketCommand = {
 			type: WebsocketCommandType.UPDATE_ROOM,
