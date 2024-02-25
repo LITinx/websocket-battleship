@@ -1,6 +1,6 @@
 export interface IWebsocketCommand {
 	type: WebsocketCommandType
-	data: IPlayerData | Array<IRoomData>
+	data: IPlayerData | Array<IRoomData> | IGameData
 	id: 0
 }
 export interface IPlayerWebsocketCommand
@@ -13,7 +13,13 @@ export interface IRoomWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {
 export interface IRawWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {
 	data: string
 }
-
+export interface IGameWebsocketCommand extends Omit<IWebsocketCommand, 'data'> {
+	data: IGameData
+}
+export interface IGameData {
+	idGame: string
+	idPlayer: string
+}
 export interface IPlayerData {
 	name: string
 	index: string

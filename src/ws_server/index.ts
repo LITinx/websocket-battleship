@@ -4,10 +4,10 @@ import { RawData, WebSocket, WebSocketServer } from 'ws'
 import { deepParsing } from '../tools/deepParsing'
 import { deepStringify } from '../tools/deepStringify'
 import {
+	IGameWebsocketCommand,
 	IPlayerData,
 	IPlayerWebsocketCommand,
 	IRoomWebsocketCommand,
-	IWebsocketCommand,
 	WebsocketCommandType,
 } from '../types/types'
 
@@ -22,6 +22,7 @@ export class BattleShipServer extends WebSocketServer {
 			type: WebsocketCommandType.REG,
 		},
 	]
+	private _roomUuid: string = v4()
 	constructor({ port }: { port: number }) {
 		super({ port })
 		this.on('connection', this.handleConnection.bind(this))
@@ -52,6 +53,10 @@ export class BattleShipServer extends WebSocketServer {
 				this.clients.forEach((client) => {
 					this.updateRoomCommandResponse(client)
 				})
+			case WebsocketCommandType.ADD_USER_TO_ROOM:
+				this.clients.forEach((client) => {
+					this.createGameCommandResponse(client)
+				})
 				break
 		}
 	}
@@ -72,8 +77,20 @@ export class BattleShipServer extends WebSocketServer {
 		ws.send(deepStringify(player))
 	}
 
-	updateRoomCommandResponse(client: any) {
-		const roomUuid = v4()
+	createGameCommandResponse(client: WebSocket) {
+		const game: IGameWebsocketCommand = {
+			type: WebsocketCommandType.CREATE_GAME,
+			data: {
+				idGame: this._roomUuid,
+				idPlayer: this._playerData[0].data.index,
+			},
+			id: 0,
+		}
+		client.send(deepStringify(game))
+	}
+
+	updateRoomCommandResponse(client: WebSocket) {
+		const roomUuid = this._roomUuid
 		const players: IPlayerData[] = []
 		this._playerData.forEach((player) => {
 			if (player.data.name === '') return
