@@ -1,5 +1,4 @@
-import { IJsonWebsocketCommand, IPlayerData } from '../types/types'
-
-export const deepParsing = (wsCommand: IJsonWebsocketCommand) => {
-	return { ...wsCommand, data: JSON.parse(wsCommand.data) as IPlayerData }
+export const deepParsing = (wsCommand: any) => {
+	if (wsCommand.data === '') return wsCommand
+	return { ...wsCommand, data: JSON.parse(wsCommand.data) }
 }

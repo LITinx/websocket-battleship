@@ -1,31 +1,24 @@
 import { IncomingMessage } from 'http'
-import { v4 } from 'uuid'
 import { RawData, WebSocket, WebSocketServer } from 'ws'
 import { deepParsing } from '../tools/deepParsing'
 import { deepStringify } from '../tools/deepStringify'
+import { generateUniqueNumber } from '../tools/generateUniqueNumber'
 import {
 	IGameWebsocketCommand,
 	IPlayerData,
 	IPlayerWebsocketCommand,
 	IRoomWebsocketCommand,
+	IShipsWebsocketCommand,
 	WebsocketCommandType,
 } from '../types/types'
-
 export class BattleShipServer extends WebSocketServer {
-	private _playerData: IPlayerWebsocketCommand[] = [
-		{
-			data: {
-				name: '',
-				index: '',
-			},
-			id: 0,
-			type: WebsocketCommandType.REG,
-		},
-	]
-	private _roomUuid: string = v4()
+	private _playerData: IPlayerWebsocketCommand[]
+	private _roomId: number = generateUniqueNumber()
 	constructor({ port }: { port: number }) {
 		super({ port })
+		this._playerData = []
 		this.on('connection', this.handleConnection.bind(this))
+		this.on('close', this.handleServerClose.bind(this))
 	}
 
 	handleServerClose() {
@@ -39,11 +32,16 @@ export class BattleShipServer extends WebSocketServer {
 	}
 
 	handleConnection(ws: WebSocket, req: IncomingMessage) {
+		const userId = generateUniqueNumber()
+		console.log(`Received a new connection.`)
+		console.log(`${userId} connected.`)
 		ws.on('message', (data) => this.responseHandler(data, ws))
 	}
 
 	responseHandler(data: RawData, ws: WebSocket) {
 		const parsedData = JSON.parse(data.toString())
+
+		console.log(deepParsing(parsedData))
 		switch (parsedData.type) {
 			case WebsocketCommandType.REG:
 				const playerData = deepParsing(parsedData)
@@ -60,19 +58,21 @@ export class BattleShipServer extends WebSocketServer {
 				})
 				break
 			case WebsocketCommandType.ADD_SHIPS:
-				this.addShipsResponse(parsedData)
+				this.clients.forEach((client) => {
+					this.addShipsResponse(parsedData, client)
+				})
 			default:
 				break
 		}
 	}
 
 	registrationResponse(data: IPlayerWebsocketCommand, ws: WebSocket) {
-		const playerUuid = v4()
+		const playerId = generateUniqueNumber()
 		const player: IPlayerWebsocketCommand = {
 			type: data.type as WebsocketCommandType.REG,
 			data: {
 				name: data.data.name,
-				index: playerUuid,
+				index: playerId,
 				error: false,
 				errorText: '',
 			},
@@ -82,16 +82,25 @@ export class BattleShipServer extends WebSocketServer {
 		ws.send(deepStringify(player))
 	}
 
-	addShipsResponse(data: any) {
-		const dataparsed = { ...data, data: JSON.parse(data.data) }
-		console.log(dataparsed.data.ships[0])
+	addShipsResponse(data: IShipsWebsocketCommand, client: WebSocket) {
+		const receivedData: IShipsWebsocketCommand = deepParsing(data)
+
+		const gameShips: IShipsWebsocketCommand = {
+			type: WebsocketCommandType.START_GAME,
+			data: {
+				ships: receivedData.data.ships,
+				currentPlayerIndex: receivedData.data.indexPlayer,
+			},
+			id: 0,
+		}
+		client.send(deepStringify(gameShips))
 	}
 
 	createGameCommandResponse(client: WebSocket) {
 		const game: IGameWebsocketCommand = {
 			type: WebsocketCommandType.CREATE_GAME,
 			data: {
-				idGame: this._roomUuid,
+				idGame: this._roomId,
 				idPlayer: this._playerData[0].data.index,
 			},
 			id: 0,
@@ -100,7 +109,7 @@ export class BattleShipServer extends WebSocketServer {
 	}
 
 	updateRoomCommandResponse(client: WebSocket) {
-		const roomUuid = this._roomUuid
+		const roomUuid = this._roomId
 		const players: IPlayerData[] = []
 		this._playerData.forEach((player) => {
 			if (player.data.name === '') return
